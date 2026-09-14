@@ -15,33 +15,20 @@ DATABASE_URL = os.environ.get(
 )
 
 class DatabaseManager:
-    _pool = None
-
-    @classmethod
-    def get_pool(cls):
-        if cls._pool is None:
-            try:
-                logger.info("Initializing PostgreSQL Connection Pool...")
-                cls._pool = psycopg2.pool.SimpleConnectionPool(
-                    1, 10, dsn=DATABASE_URL
-                )
-            except Exception as e:
-                logger.error(f"Error creating connection pool: {e}")
-                raise e
-        return cls._pool
-
     @classmethod
     @contextmanager
     def get_connection(cls):
-        connection_pool = cls.get_pool()
-        connection = connection_pool.getconn()
+        # In Serverless environments (like Vercel), connection pooling can lead to 
+        # 'server closed connection unexpectedly' errors when the function freezes.
+        # It's safer to open a new connection per invocation.
+        connection = psycopg2.connect(DATABASE_URL)
         try:
             yield connection
         except Exception as e:
             connection.rollback()
             raise e
         finally:
-            connection_pool.putconn(connection)
+            connection.close()
 
     @classmethod
     def execute_query(cls, query, params=None, fetch=False):
