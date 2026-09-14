@@ -265,11 +265,7 @@ def auth_face():
     live_encoding = face_recognition_helper.generate_encoding(decoded_img, face_box)
     
     # Query all active stored face encodings
-    rows = DatabaseManager.execute_query(
-        """SELECT u.id, u.username, fe.encoding FROM face_encodings fe 
-           JOIN users u ON fe.user_id = u.id 
-           WHERE u.is_active = TRUE"""
-    )
+    rows = DatabaseManager.execute_query("""SELECT u.id, u.username, fe.encoding FROM face_encodings fe JOIN users u ON fe.user_id = u.id WHERE u.is_active = TRUE""", fetch=True)
     
     stored_encodings = []
     for r in rows:
@@ -385,9 +381,7 @@ def get_elevator_permissions():
         return jsonify({"username": username, "role": role, "allowed_floors": floors})
         
     # Query database for resident/admin permissions
-    rows = DatabaseManager.execute_query(
-        "SELECT floor FROM floor_permissions WHERE user_id = %s", (session['user_id'],)
-    )
+    rows = DatabaseManager.execute_query("SELECT floor FROM floor_permissions WHERE user_id = %s", (session['user_id'],), fetch=True)
     floors = [r[0] for r in rows]
     return jsonify({"username": username, "role": role, "allowed_floors": floors})
 
@@ -447,13 +441,7 @@ def request_floor():
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def get_users():
-    rows = DatabaseManager.execute_query(
-        """SELECT u.id, u.username, u.name, u.role, u.is_active, 
-           (SELECT card_uid FROM rfid_cards r WHERE r.user_id = u.id) as rfid,
-           (SELECT COUNT(*) FROM face_encodings fe WHERE fe.user_id = u.id) as has_face,
-           ARRAY(SELECT floor FROM floor_permissions fp WHERE fp.user_id = u.id ORDER BY floor) as floors
-           FROM users u ORDER BY u.id ASC"""
-    )
+    rows = DatabaseManager.execute_query("""SELECT u.id, u.username, u.name, u.role, u.is_active, (SELECT card_uid FROM rfid_cards r WHERE r.user_id = u.id) as rfid, (SELECT COUNT(*) FROM face_encodings fe WHERE fe.user_id = u.id) as has_face, ARRAY(SELECT floor FROM floor_permissions fp WHERE fp.user_id = u.id ORDER BY floor) as floors FROM users u ORDER BY u.id ASC""", fetch=True)
     users_list = []
     for r in rows:
         users_list.append({
@@ -728,7 +716,7 @@ def get_auth_logs():
         
     query += " ORDER BY timestamp DESC LIMIT 200"
     
-    rows = DatabaseManager.execute_query(query, params)
+    rows = DatabaseManager.execute_query(query, params, fetch=True)
     logs = [{"timestamp": r[0].isoformat(), "username": r[1], "method": r[2], "result": r[3]} for r in rows]
     return jsonify(logs)
 
@@ -758,10 +746,11 @@ def get_access_logs():
         
     query += " ORDER BY timestamp DESC LIMIT 200"
     
-    rows = DatabaseManager.execute_query(query, params)
+    rows = DatabaseManager.execute_query(query, params, fetch=True)
     logs = [{"timestamp": r[0].isoformat(), "username": r[1], "floor": r[2], "result": r[3]} for r in rows]
     return jsonify(logs)
 
 if __name__ == '__main__':
     # Start the Flask app
     app.run(host='0.0.0.0', port=5000, debug=True)
+
