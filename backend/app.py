@@ -210,7 +210,7 @@ def auth_password():
         return jsonify({"error": "Username and password required"}), 400
         
     user = DatabaseManager.execute_one(
-        "SELECT id, username, password_hash, name, role, is_active FROM users WHERE username = %s", 
+        "SELECT id, username, password_hash, name, role, is_active, approval_status FROM users WHERE username = %s", 
         (username,)
     )
     
@@ -218,8 +218,12 @@ def auth_password():
         log_auth(username, "password", "fail_invalid_user")
         return jsonify({"error": "Invalid username or password"}), 401
         
-    user_id, uname, pwd_hash, name, role, is_active = user
+    user_id, uname, pwd_hash, name, role, is_active, approval_status = user
     
+    if approval_status == 'pending':
+        log_auth(username, "password", "fail_user_pending")
+        return jsonify({"error": "Account is pending admin approval."}), 403
+        
     if not is_active:
         log_auth(username, "password", "fail_user_inactive")
         return jsonify({"error": "Account is deactivated"}), 403
@@ -248,6 +252,35 @@ def auth_password():
         log_auth(username, "password", "fail_incorrect_password")
         return jsonify({"error": "Invalid username or password"}), 401
 
+@app.route('/api/auth/signup', methods=['POST'])
+def auth_signup():
+    data = request.json or {}
+    username = data.get('username')
+    password = data.get('password')
+    name = data.get('name')
+    
+    if not username or not password or not name:
+        return jsonify({"error": "Username, password, and name are required."}), 400
+        
+    if len(password) < 8 or not any(c.isupper() for c in password) or not any(c.islower() for c in password) or not any(c.isdigit() for c in password):
+        return jsonify({"error": "Password must be at least 8 characters long, contain an uppercase letter, lowercase letter, and a number."}), 400
+        
+    existing = DatabaseManager.execute_one("SELECT 1 FROM users WHERE username = %s", (username,))
+    if existing:
+        return jsonify({"error": "Username already exists."}), 409
+        
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    with DatabaseManager.get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO users (username, password_hash, name, role, approval_status) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (username, hashed, name, 'resident', 'pending')
+            )
+        conn.commit()
+        
+    return jsonify({"success": True, "message": "Account created successfully. Please wait for admin approval."})
+
 @app.route('/api/auth/face', methods=['POST'])
 def auth_face():
     # Receive captured frame (as base64 or raw file)
@@ -265,7 +298,11 @@ def auth_face():
     live_encoding = face_recognition_helper.generate_encoding(decoded_img, face_box)
     
     # Query all active stored face encodings
-    rows = DatabaseManager.execute_query("""SELECT u.id, u.username, fe.encoding FROM face_encodings fe JOIN users u ON fe.user_id = u.id WHERE u.is_active = TRUE""", fetch=True)
+    rows = DatabaseManager.execute_query(
+        """SELECT u.id, u.username, fe.encoding FROM face_encodings fe 
+           JOIN users u ON fe.user_id = u.id 
+           WHERE u.is_active = TRUE""", fetch=True
+    )
     
     stored_encodings = []
     for r in rows:
@@ -381,7 +418,9 @@ def get_elevator_permissions():
         return jsonify({"username": username, "role": role, "allowed_floors": floors})
         
     # Query database for resident/admin permissions
-    rows = DatabaseManager.execute_query("SELECT floor FROM floor_permissions WHERE user_id = %s", (session['user_id'],), fetch=True)
+    rows = DatabaseManager.execute_query(
+        "SELECT floor FROM floor_permissions WHERE user_id = %s", (session['user_id'],), fetch=True
+    )
     floors = [r[0] for r in rows]
     return jsonify({"username": username, "role": role, "allowed_floors": floors})
 
@@ -441,7 +480,13 @@ def request_floor():
 @app.route('/api/admin/users', methods=['GET'])
 @admin_required
 def get_users():
-    rows = DatabaseManager.execute_query("""SELECT u.id, u.username, u.name, u.role, u.is_active, (SELECT card_uid FROM rfid_cards r WHERE r.user_id = u.id) as rfid, (SELECT COUNT(*) FROM face_encodings fe WHERE fe.user_id = u.id) as has_face, ARRAY(SELECT floor FROM floor_permissions fp WHERE fp.user_id = u.id ORDER BY floor) as floors FROM users u ORDER BY u.id ASC""", fetch=True)
+    rows = DatabaseManager.execute_query(
+        """SELECT u.id, u.username, u.name, u.role, u.is_active, 
+           (SELECT card_uid FROM rfid_cards r WHERE r.user_id = u.id) as rfid,
+           (SELECT COUNT(*) FROM face_encodings fe WHERE fe.user_id = u.id) as has_face,
+           ARRAY(SELECT floor FROM floor_permissions fp WHERE fp.user_id = u.id ORDER BY floor) as floors
+           FROM users u ORDER BY u.id ASC""", fetch=True
+    )
     users_list = []
     for r in rows:
         users_list.append({
