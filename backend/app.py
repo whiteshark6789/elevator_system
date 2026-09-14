@@ -7,7 +7,7 @@ import logging
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import timedelta
 from db import DatabaseManager
-import face_recognition_helper
+# import face_recognition_helper # TEMPORARILY DISABLED to test if OpenCV is crashing Vercel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
