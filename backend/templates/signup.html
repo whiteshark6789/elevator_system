@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Secure Elevator Access{% endblock %}
+
+{% block content %}
+<div class="login-container">
+  <div class="md-card md-card-elevated login-card">
+    <div class="login-header">
+      <span class="material-symbols-outlined" style="font-size: 60px; color: var(--md-sys-color-primary); display:block;">person_add</span>
+      <h2 class="headline-large" style="margin-top: 12px;">Create Account</h2>
+      <p class="body-large" style="color: var(--md-sys-color-on-surface-variant); margin-top: 8px;">Register for resident access</p>
+    </div>
+
+    <!-- Inline message banner -->
+    <div id="messageBanner" class="message-banner" role="alert" aria-live="polite">
+      <span class="material-symbols-outlined" id="messageBannerIcon" style="font-size:20px; flex-shrink:0;">info</span>
+      <span id="messageBannerText"></span>
+    </div>
+
+    <div class="login-tab-content active" style="margin-top: 24px;">
+      <form id="signupForm" onsubmit="submitSignup(event)">
+        <div class="md-text-field">
+          <input type="text" id="username" placeholder=" " required autocomplete="username">
+          <label for="username">Username</label>
+        </div>
+        <div class="md-text-field">
+          <input type="text" id="fullname" placeholder=" " required autocomplete="name">
+          <label for="fullname">Full Name</label>
+        </div>
+        <div class="md-text-field">
+          <input type="password" id="password" placeholder=" " required autocomplete="new-password">
+          <label for="password">Password</label>
+        </div>
+        <div class="md-text-field">
+          <input type="password" id="confirmPassword" placeholder=" " required autocomplete="new-password">
+          <label for="confirmPassword">Confirm Password</label>
+        </div>
+        
+        <p class="body-small" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 24px;">
+          Password must be at least 8 characters long, contain an uppercase letter, lowercase letter, and a number.
+        </p>
+
+        <button type="submit" class="md-button md-button-filled" id="signupSubmitBtn" style="width: 100%;">
+          <span class="material-symbols-outlined btn-label">how_to_reg</span>
+          <span class="btn-label">Sign Up</span>
+          <span class="btn-spinner"></span>
+        </button>
+      </form>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="/login" class="md-button md-button-text">
+        <span class="btn-label">Already have an account? Sign in</span>
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Message Banner ──
+  function showBanner(msg, type = 'error') {
+    const banner = document.getElementById('messageBanner');
+    const text = document.getElementById('messageBannerText');
+    const icon = document.getElementById('messageBannerIcon');
+    text.textContent = msg;
+    banner.className = `message-banner visible ${type}`;
+    icon.textContent = type === 'error' ? 'error' : 'check_circle';
+    if (type === 'success') {
+      setTimeout(() => {
+        banner.classList.remove('visible', 'error', 'success');
+      }, 6000);
+    }
+  }
+
+  // ── Button Loading State Helper ──
+  function setLoading(btn, loading) {
+    if (!btn) return;
+    if (loading) {
+      btn.classList.add('loading');
+      btn.disabled = true;
+    } else {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  // Signup submission logic
+  async function submitSignup(e) {
+    e.preventDefault();
+    const btn = document.getElementById('signupSubmitBtn');
+    
+    const uname = document.getElementById('username').value.trim();
+    const fname = document.getElementById('fullname').value.trim();
+    const pword = document.getElementById('password').value;
+    const confirmPword = document.getElementById('confirmPassword').value;
+
+    if (pword !== confirmPword) {
+      showBanner('Passwords do not match.', 'error');
+      return;
+    }
+
+    setLoading(btn, true);
+
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname, name: fname, password: pword })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        showBanner('Account created successfully! Redirecting to login...', 'success');
+        setTimeout(() => window.location.href = result.redirect, 2000);
+      } else {
+        showBanner(result.error || 'Registration failed.', 'error');
+        setLoading(btn, false);
+      }
+    } catch (err) {
+      console.error(err);
+      showBanner('Server communication error.', 'error');
+      setLoading(btn, false);
+    }
+  }
+</script>
+{% endblock %}
