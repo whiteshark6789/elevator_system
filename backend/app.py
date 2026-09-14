@@ -59,28 +59,13 @@ def init_hardware():
         GPIO.output(BUZZER_PIN, GPIO.LOW)
         logger.info("Hardware GPIO pins initialized successfully.")
 
-# Initialize DB and Hardware
+# Initialize Hardware
 with app.app_context():
-    DatabaseManager.init_db()
     init_hardware()
     
-    # Seed default administrator account if not exists (REQ-47)
-    admin_exists = DatabaseManager.execute_one("SELECT id FROM users WHERE username = %s", ("admin",))
-    if not admin_exists:
-        logger.info("Seeding default administrator account...")
-        hashed = bcrypt.hashpw("Admin123!".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        # Insert admin user
-        DatabaseManager.execute_query(
-            "INSERT INTO users (username, password_hash, name, role) VALUES (%s, %s, %s, %s)",
-            ("admin", hashed, "System Administrator", "admin")
-        )
-        admin_id = DatabaseManager.execute_one("SELECT id FROM users WHERE username = %s", ("admin",))[0]
-        # Grant admin access to floors 1 to 5
-        for floor in range(1, 6):
-            DatabaseManager.execute_query(
-                "INSERT INTO floor_permissions (user_id, floor) VALUES (%s, %s)",
-                (admin_id, floor)
-            )
+    # We remove init_db() and admin seeding from here to prevent Vercel Serverless Function 
+    # timeouts on cold starts (Neon DB can take 3-5 seconds to wake up). 
+    # The database has already been fully initialized and seeded!
 
 # Loggers
 def log_auth(username, method, result):
