@@ -1,0 +1,715 @@
+/* ─── App Layout ─── */
+.app-header {
+  height: 64px;
+  background-color: var(--md-sys-color-surface-container-high);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--md-elevation-1);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--md-sys-color-primary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  padding: 24px;
+  gap: 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ─── Login / Auth Page ─── */
+.login-container {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 480px;
+  padding: 40px;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* M3 Tab Bar */
+.login-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  margin-bottom: 28px;
+  gap: 0;
+}
+
+.login-tab-btn {
+  flex: 1;
+  height: 48px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 8px;
+  position: relative;
+  white-space: nowrap;
+  transition:
+    color var(--md-motion-duration-short) var(--md-motion-easing-standard),
+    border-color var(--md-motion-duration-short) var(--md-motion-easing-standard);
+}
+
+.login-tab-btn:hover {
+  color: var(--md-sys-color-on-surface);
+  background-color: rgba(103, 80, 164, 0.05);
+}
+
+.login-tab-btn:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+}
+
+.login-tab-btn.active {
+  border-bottom-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-primary);
+}
+
+/* Tab content panel — fixed min-height prevents layout collapse on switch */
+.login-tab-content {
+  display: none;
+  min-height: 260px;
+}
+
+.login-tab-content.active {
+  display: block;
+  animation: fadeIn var(--md-motion-duration-short) var(--md-motion-easing-standard);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Inline message banner */
+.message-banner {
+  display: none;
+  padding: 12px 16px;
+  border-radius: var(--md-shape-corner-small);
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  align-items: center;
+  gap: 10px;
+}
+.message-banner.visible { display: flex; }
+.message-banner.error {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+.message-banner.success {
+  background-color: var(--md-sys-color-success-container);
+  color: var(--md-sys-color-on-success-container);
+}
+
+/* ─── Camera Preview ─── */
+.camera-preview-box {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background-color: #0a0a0a;
+  border-radius: var(--md-shape-corner-medium);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 16px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.camera-preview-box video,
+.camera-preview-box canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.camera-overlay {
+  position: absolute;
+  inset: 20px;
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scanning pulse animation on the camera overlay */
+.camera-overlay::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(103, 80, 164, 0.5);
+  animation: cameraPulse 2s ease-in-out infinite;
+}
+
+@keyframes cameraPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.98); }
+  50%       { opacity: 0.8; transform: scale(1.02); }
+}
+
+.camera-status {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.75));
+  color: #fff;
+  padding: 24px 12px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+/* ─── Elevator Console (Metallic Premium Panel) ─── */
+.elevator-console-card {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 36px 32px;
+  background: linear-gradient(160deg, #e8e8e8 0%, #d0d0d0 50%, #c0c0c0 100%);
+  border: 3px solid #a8a8a8;
+  border-top-color: #f0f0f0;
+  border-left-color: #f0f0f0;
+  border-radius: var(--md-shape-corner-extra-large);
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.3),
+    0 4px 12px rgba(0,0,0,0.15),
+    inset 0 2px 4px rgba(255,255,255,0.6),
+    inset 0 -2px 4px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+body.dark-mode .elevator-console-card {
+  background: linear-gradient(160deg, #35313e 0%, #28252e 50%, #1e1c23 100%);
+  border-color: #45424e;
+  border-top-color: #4a4653;
+  border-left-color: #4a4653;
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.6),
+    0 4px 12px rgba(0,0,0,0.4),
+    inset 0 2px 4px rgba(255,255,255,0.04),
+    inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+
+/* Digital LED Display */
+.elevator-display {
+  width: 100%;
+  background-color: #060a12;
+  border: 2px solid #2a2a2a;
+  border-radius: var(--md-shape-corner-small);
+  padding: 16px 20px;
+  text-align: center;
+  box-shadow:
+    inset 0 3px 12px rgba(0,0,0,0.9),
+    0 1px 2px rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle scanline effect on the display */
+.elevator-display::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.04) 2px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+}
+
+.display-floor-indicator {
+  font-family: 'Courier New', 'Lucida Console', monospace;
+  font-size: 40px;
+  font-weight: 700;
+  color: #ff4428;
+  text-shadow: 0 0 12px rgba(255, 68, 40, 0.9), 0 0 24px rgba(255, 68, 40, 0.4);
+  letter-spacing: 4px;
+  min-height: 48px;
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+}
+
+.display-message {
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: #00e676;
+  text-shadow: 0 0 8px rgba(0, 230, 118, 0.7);
+  margin-top: 8px;
+  min-height: 18px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+/* Status LED Row */
+.elevator-leds {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.led-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.led {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #4a4a4a;
+  background-color: #1a1a1a;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+  transition:
+    background-color var(--md-motion-duration-short) ease,
+    box-shadow var(--md-motion-duration-short) ease;
+}
+
+.led-label {
+  font-size: 10px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.led-green.active {
+  background-color: #00e676;
+  box-shadow:
+    0 0 8px #00e676,
+    0 0 20px rgba(0, 230, 118, 0.6),
+    inset 0 1px 2px rgba(255,255,255,0.6);
+}
+
+.led-red.active {
+  background-color: #ff4428;
+  box-shadow:
+    0 0 8px #ff4428,
+    0 0 20px rgba(255, 68, 40, 0.6),
+    inset 0 1px 2px rgba(255,255,255,0.6);
+}
+
+/* Floor Button Keypad */
+.elevator-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.keypad-btn {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f5f5f5 0%, #d8d8d8 60%, #bdbdbd 100%);
+  border: 3px solid #b0b0b0;
+  border-top-color: #e0e0e0;
+  border-left-color: #e0e0e0;
+  color: #2a2a2a;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 6px 12px rgba(0,0,0,0.25),
+    inset 0 1px 2px rgba(255,255,255,0.7);
+  user-select: none;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    background var(--md-motion-duration-short) ease,
+    border-color var(--md-motion-duration-short) ease;
+}
+
+body.dark-mode .keypad-btn {
+  background: radial-gradient(circle at 35% 35%, #56505f 0%, #3a353f 60%, #28232e 100%);
+  border-color: #1e1a23;
+  border-top-color: #5a5464;
+  border-left-color: #5a5464;
+  color: #e6e1e5;
+  box-shadow:
+    0 6px 12px rgba(0,0,0,0.5),
+    inset 0 1px 2px rgba(255,255,255,0.06);
+}
+
+.keypad-btn:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 3px;
+}
+
+.keypad-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px 6px rgba(0,0,0,0.2),
+    inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Permitted floor — subtle primary glow ring */
+.keypad-btn.permitted {
+  border-color: var(--md-sys-color-primary);
+  box-shadow:
+    0 6px 12px rgba(0,0,0,0.25),
+    0 0 0 1px rgba(103, 80, 164, 0.35),
+    inset 0 1px 2px rgba(255,255,255,0.7);
+}
+
+/* Active/pressed state */
+.keypad-btn.active {
+  background: radial-gradient(circle at 35% 35%, #eaddff 0%, #9a82db 60%, #6750a4 100%);
+  color: #fff;
+  border-color: #6750a4;
+  border-top-color: #b39ddb;
+  border-left-color: #b39ddb;
+  box-shadow:
+    0 0 16px rgba(103, 80, 164, 0.7),
+    0 4px 10px rgba(103, 80, 164, 0.4),
+    inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.keypad-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Session info strip */
+.elevator-session-strip {
+  width: 100%;
+  text-align: center;
+  padding: 10px 16px;
+  background-color: rgba(0,0,0,0.08);
+  border-radius: var(--md-shape-corner-small);
+  font-size: 13px;
+  color: #555;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.3px;
+}
+body.dark-mode .elevator-session-strip {
+  background-color: rgba(255,255,255,0.06);
+  color: #999;
+}
+
+/* ─── Admin Dashboard Layout ─── */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  width: 100%;
+  gap: 24px;
+  align-items: start;
+}
+
+.sidebar-navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: sticky;
+  top: 88px; /* 64px header + 24px margin */
+}
+
+.nav-item {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: var(--md-shape-corner-full);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  user-select: none;
+  transition:
+    background-color var(--md-motion-duration-short) var(--md-motion-easing-standard),
+    color var(--md-motion-duration-short) var(--md-motion-easing-standard);
+}
+
+.nav-item:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: -2px;
+}
+
+.nav-item.active {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* ─── Data Tables ─── */
+.table-card {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--md-shape-corner-large);
+}
+
+.m3-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 700px;
+}
+
+.m3-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--md-sys-color-surface-container);
+}
+
+.m3-table th {
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--md-sys-color-outline-variant);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.m3-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.m3-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.m3-table tbody tr {
+  transition: background-color var(--md-motion-duration-short) ease;
+}
+
+.m3-table tbody tr:hover {
+  background-color: rgba(103, 80, 164, 0.05);
+}
+
+/* ─── Badges / Status Pills ─── */
+.m3-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--md-shape-corner-full);
+  line-height: 1;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* Use M3 tokens instead of raw hex */
+.badge-active {
+  background-color: var(--md-sys-color-success-container);
+  color: var(--md-sys-color-on-success-container);
+}
+
+.badge-inactive {
+  background-color: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.badge-role {
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  text-transform: capitalize;
+}
+
+/* ─── Floor Chips ─── */
+.chips-container {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.chip {
+  height: 32px;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-shape-corner-small);
+  background-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  gap: 6px;
+  user-select: none;
+  color: var(--md-sys-color-on-surface-variant);
+  transition:
+    background-color var(--md-motion-duration-short) ease,
+    color var(--md-motion-duration-short) ease,
+    border-color var(--md-motion-duration-short) ease;
+}
+
+.chip:hover {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 1px;
+}
+
+.chip.selected {
+  background-color: var(--md-sys-color-primary-container);
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+/* ─── Log Filters Bar ─── */
+.filters-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+  background-color: var(--md-sys-color-surface-container-low);
+  padding: 20px;
+  border-radius: var(--md-shape-corner-medium);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+/* ─── Responsive Breakpoints ─── */
+@media (max-width: 1024px) {
+  .admin-layout {
+    grid-template-columns: 220px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px;
+    flex-direction: column;
+  }
+
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar-navigation {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    gap: 4px;
+  }
+
+  .nav-item {
+    height: 44px;
+    padding: 0 12px;
+    border-radius: var(--md-shape-corner-medium);
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .login-card {
+    padding: 24px 20px;
+  }
+
+  .login-tab-btn {
+    font-size: 11px;
+    gap: 4px;
+    padding: 0 4px;
+  }
+
+  .login-tab-btn .material-symbols-outlined {
+    font-size: 18px;
+  }
+
+  .app-header {
+    padding: 0 16px;
+  }
+
+  .header-actions .body-large {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .elevator-console-card {
+    padding: 24px 20px;
+  }
+
+  .display-floor-indicator {
+    font-size: 32px;
+  }
+
+  .elevator-keypad {
+    max-width: 280px;
+    gap: 12px;
+  }
+
+  .keypad-btn {
+    font-size: 20px;
+  }
+}

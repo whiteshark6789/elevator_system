@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Elevator Console - Secure Elevator Access{% endblock %}
+
+{% block content %}
+<div class="login-container">
+  <div class="elevator-console-card">
+    
+    <!-- Digital Status Screen -->
+    <div class="elevator-display">
+      <div class="display-floor-indicator" id="displayFloor">LOBBY</div>
+      <div class="display-message" id="displayMessage">PLEASE AUTHENTICATE</div>
+    </div>
+
+    <!-- Status LEDs (Green: Granted, Red: Denied) -->
+    <div class="elevator-leds">
+      <div class="led-unit">
+        <div class="led led-green" id="ledGreen"></div>
+        <div class="led-label">Granted</div>
+      </div>
+      <div class="led-unit">
+        <div class="led led-red" id="ledRed"></div>
+        <div class="led-label">Denied</div>
+      </div>
+    </div>
+
+    <!-- Interactive Keypad Console (Floors 1 to 5 + door controls) -->
+    <div class="elevator-keypad">
+      <button class="keypad-btn" id="btn-5" onclick="pressFloor(5)" disabled aria-label="Floor 5">5</button>
+      <button class="keypad-btn" id="btn-4" onclick="pressFloor(4)" disabled aria-label="Floor 4">4</button>
+      <button class="keypad-btn" id="btn-3" onclick="pressFloor(3)" disabled aria-label="Floor 3">3</button>
+      <button class="keypad-btn" id="btn-2" onclick="pressFloor(2)" disabled aria-label="Floor 2">2</button>
+      <button class="keypad-btn" id="btn-1" onclick="pressFloor(1)" disabled aria-label="Floor 1">1</button>
+      <!-- Door open / close -->  
+      <button class="keypad-btn" onclick="simulateDoor('open')" aria-label="Open Door">
+        <span class="material-symbols-outlined" style="font-size:28px; font-variation-settings:'FILL' 0;">sensor_door</span>
+      </button>
+    </div>
+
+    <div class="elevator-session-strip" id="sessionInfo">
+      Loading authorization data...
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let allowedFloors = [];
+  let userRole = '';
+
+  // Audio Context for local hardware buzzer / click simulation (WOW factor)
+  let audioCtx = null;
+  function getAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  function playTone(freq, duration, type = 'sine') {
+    try {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = type;
+      osc.frequency.value = freq;
+      
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {
+      console.warn("Audio play blocked by browser policy until interaction.", e);
+    }
+  }
+
+  function playBuzzerDeny() {
+    playTone(150, 0.8, 'sawtooth');
+  }
+
+  function playChimeGrant() {
+    playTone(523.25, 0.15, 'sine'); // C5
+    setTimeout(() => playTone(659.25, 0.25, 'sine'), 150); // E5
+  }
+
+  function playKeyClick() {
+    playTone(1000, 0.05, 'triangle');
+  }
+
+  // Load permissions on start
+  async function fetchPermissions() {
+    try {
+      const response = await fetch('/api/elevator/permissions');
+      const data = await response.json();
+      
+      allowedFloors = data.allowed_floors;
+      userRole = data.role;
+      
+      document.getElementById('sessionInfo').innerHTML = `
+        Authenticated as: <strong>${data.username}</strong> (${userRole.toUpperCase()})
+      `;
+      
+      document.getElementById('displayFloor').textContent = 'READY';
+      document.getElementById('displayMessage').textContent = 'SELECT AUTHORIZED FLOOR';
+      
+      // Enable buttons accordingly (REQ-31, REQ-32)
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.getElementById(`btn-${i}`);
+        if (btn) {
+          if (allowedFloors.includes(i)) {
+            btn.disabled = false;
+            btn.classList.add('permitted');
+          } else {
+            // Disabled but visible (REQ-32)
+            btn.disabled = true;
+            btn.classList.remove('permitted');
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      document.getElementById('displayFloor').textContent = 'ERROR';
+      document.getElementById('displayMessage').textContent = 'FAILED TO LOAD PERMISSIONS';
+    }
+  }
+
+  async function pressFloor(floor) {
+    playKeyClick();
+    
+    // UI active state
+    const btn = document.getElementById(`btn-${floor}`);
+    btn.classList.add('active');
+    
+    document.getElementById('displayFloor').textContent = 'HOLD';
+    document.getElementById('displayMessage').textContent = `REQUESTING FLOOR ${floor}...`;
+    
+    try {
+      const response = await fetch('/api/elevator/request_floor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ floor: floor })
+      });
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Access Granted (REQ-35)
+        document.getElementById('ledGreen').classList.add('active');
+        document.getElementById('ledRed').classList.remove('active');
+        document.getElementById('displayFloor').textContent = `FL ${floor}`;
+        document.getElementById('displayMessage').textContent = 'ACCESS GRANTED';
+        playChimeGrant();
+        
+        if (result.visitor_ended) {
+          // Visitor OTP expired immediately (REQ-17)
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        } else {
+          // Reset after a short delay
+          setTimeout(() => {
+            btn.classList.remove('active');
+            document.getElementById('ledGreen').classList.remove('active');
+            document.getElementById('displayFloor').textContent = 'READY';
+            document.getElementById('displayMessage').textContent = 'SELECT AUTHORIZED FLOOR';
+          }, 3000);
+        }
+      } else {
+        // Access Denied (REQ-36)
+        handleAccessDenied(btn);
+      }
+    } catch (err) {
+      console.error(err);
+      handleAccessDenied(btn);
+    }
+  }
+
+  function handleAccessDenied(btn) {
+    document.getElementById('ledRed').classList.add('active');
+    document.getElementById('ledGreen').classList.remove('active');
+    document.getElementById('displayFloor').textContent = 'LOCK';
+    document.getElementById('displayMessage').textContent = 'ACCESS DENIED';
+    playBuzzerDeny();
+    
+    setTimeout(() => {
+      if (btn) btn.classList.remove('active');
+      document.getElementById('ledRed').classList.remove('active');
+      document.getElementById('displayFloor').textContent = 'READY';
+      document.getElementById('displayMessage').textContent = 'SELECT AUTHORIZED FLOOR';
+    }, 3000);
+  }
+
+  function simulateDoor(action) {
+    playKeyClick();
+    document.getElementById('displayMessage').textContent = `DOOR ${action.toUpperCase()}`;
+    setTimeout(() => {
+      document.getElementById('displayMessage').textContent = 'SELECT AUTHORIZED FLOOR';
+    }, 1500);
+  }
+
+  // Trigger loading process
+  fetchPermissions();
+</script>
+{% endblock %}

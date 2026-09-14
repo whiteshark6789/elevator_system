@@ -1,0 +1,8 @@
+Flask==3.1.3
+Flask-Session==0.8.0
+psycopg2-binary==2.9.9
+bcrypt==4.1.3
+numpy==2.4.2
+# Use opencv-python (full) for camera preview window support on Raspberry Pi
+# Use opencv-python-headless instead if running in a headless server environment
+opencv-python-headless==4.10.0.84
