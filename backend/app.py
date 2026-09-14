@@ -7,7 +7,7 @@ import logging
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import timedelta
 from db import DatabaseManager
-# import face_recognition_helper # TEMPORARILY DISABLED to test if OpenCV is crashing Vercel
+import face_recognition_helper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -158,32 +158,7 @@ def elevator_panel():
 
 # Authentication APIs
 
-@app.route('/api/auth/signup', methods=['POST'])
-def auth_signup():
-    data = request.json or {}
-    username = data.get('username')
-    password = data.get('password')
-    name = data.get('name')
-    
-    if not username or not password or not name:
-        return jsonify({"error": "Username, password, and name are required"}), 400
-        
-    if len(password) < 8 or not any(c.isupper() for c in password) or not any(c.islower() for c in password) or not any(c.isdigit() for c in password):
-        return jsonify({"error": "Password must be at least 8 characters long, contain an uppercase letter, lowercase letter, and a number."}), 400
-        
-    existing = DatabaseManager.execute_one("SELECT 1 FROM users WHERE username = %s", (username,))
-    if existing:
-        return jsonify({"error": "Username already exists"}), 409
-        
-    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    
-    DatabaseManager.execute_query(
-        "INSERT INTO users (username, password_hash, name, role) VALUES (%s, %s, %s, 'resident')",
-        (username, hashed, name)
-    )
-    
-    log_auth(username, "signup", "success")
-    return jsonify({"success": True, "redirect": url_for('login_page')})
+
 
 @app.route('/api/auth/password', methods=['POST'])
 def auth_password():
