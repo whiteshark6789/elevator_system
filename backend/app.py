@@ -13,7 +13,14 @@ import face_recognition_helper
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+# Ensure absolute paths for Vercel deployment
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'static')
+)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "m3-elevator-secure-key-1893")
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=30)
 
