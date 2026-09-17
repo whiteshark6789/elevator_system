@@ -470,7 +470,7 @@ def generate_resident_otp():
     
     DatabaseManager.execute_query(
         "INSERT INTO auth_logs (username, method, result) VALUES (%s, %s, %s)",
-        (session.get('username'), "otp_generation", f"generated_otp_{otp_code}_floors_{floors}")
+        (session.get('username'), "admin_action", f"generated_otp_{otp_code}_floors_{floors}")
     )
     
     return jsonify({"success": True, "otp_code": otp_code, "expires_at": expires_at.isoformat()})
