@@ -42,6 +42,26 @@
     </div>
 
   </div>
+
+  <!-- Guest OTP Section -->
+  <div class="md-card" id="guestOtpSection" style="display: none; margin-top: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">
+    <h3 class="title-large">Guest Access OTP</h3>
+    <p class="body-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 16px;">Generate a temporary 30-minute access code for your visitors.</p>
+    
+    <div class="chips-container" id="residentOtpFloors" style="margin-bottom: 16px;">
+      <!-- Populated dynamically based on resident's allowed floors -->
+    </div>
+    
+    <button class="md-button md-button-filled" onclick="generateResidentOtp()" style="width: 100%;">
+      <span class="material-symbols-outlined">key</span> Generate OTP
+    </button>
+    
+    <div id="residentOtpResult" style="display: none; margin-top: 16px; text-align: center; background: var(--md-sys-color-surface-variant); border-radius: 8px; padding: 12px;">
+      <h2 style="font-family: monospace; font-size: 32px; letter-spacing: 4px; color: var(--md-sys-color-primary);" id="residentOtpCode">000000</h2>
+      <p class="label-large" id="residentOtpExpiry" style="margin-top: 8px;"></p>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
@@ -124,6 +144,16 @@
           }
         }
       }
+      
+      // Show Guest OTP section for residents
+      if (userRole === 'resident' || userRole === 'admin') {
+         document.getElementById('guestOtpSection').style.display = 'block';
+         const container = document.getElementById('residentOtpFloors');
+         container.innerHTML = '';
+         allowedFloors.forEach(fl => {
+             container.innerHTML += `<div class="chip" onclick="this.classList.toggle('selected')" data-floor="${fl}">Floor ${fl}</div>`;
+         });
+      }
     } catch (err) {
       console.error(err);
       document.getElementById('displayFloor').textContent = 'ERROR';
@@ -202,6 +232,39 @@
     setTimeout(() => {
       document.getElementById('displayMessage').textContent = 'SELECT AUTHORIZED FLOOR';
     }, 1500);
+  }
+
+  async function generateResidentOtp() {
+    const floors = [];
+    document.querySelectorAll('#residentOtpFloors .chip.selected').forEach(chip => {
+      floors.push(parseInt(chip.getAttribute('data-floor')));
+    });
+    
+    if (floors.length === 0) {
+      alert('Please select at least one floor for the visitor.');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/elevator/otp/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ floors })
+      });
+      const result = await response.json();
+      
+      if (response.ok) {
+        document.getElementById('residentOtpResult').style.display = 'block';
+        document.getElementById('residentOtpCode').textContent = result.otp_code;
+        const expDate = new Date(result.expires_at);
+        document.getElementById('residentOtpExpiry').textContent = `Expires at: ${expDate.toLocaleTimeString()}`;
+      } else {
+        alert(result.error || 'Failed to generate code.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error generating OTP');
+    }
   }
 
   // Trigger loading process

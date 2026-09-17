@@ -435,6 +435,46 @@ def request_floor():
         trigger_access_denied()
         return jsonify({"error": f"Access denied to floor {floor}."}), 403
 
+@app.route('/api/elevator/otp/generate', methods=['POST'])
+@login_required
+def generate_resident_otp():
+    """Generates a random 6-digit OTP code for visitors by residents."""
+    data = request.json or {}
+    floors = data.get('floors', [])
+    
+    if not floors:
+        return jsonify({"error": "At least one floor must be selected"}), 400
+        
+    try:
+        floors = [int(f) for f in floors]
+    except ValueError:
+        return jsonify({"error": "Invalid floor list format"}), 400
+        
+    # Check if the requested floors are within the resident's permitted floors
+    rows = DatabaseManager.execute_query(
+        "SELECT floor FROM floor_permissions WHERE user_id = %s", (session['user_id'],), fetch=True
+    )
+    allowed_floors = [r[0] for r in rows]
+    
+    if not set(floors).issubset(set(allowed_floors)):
+        return jsonify({"error": "You can only grant access to floors you have permission for."}), 403
+        
+    otp_code = "".join(random.choices(string.digits, k=6))
+    expires_at = datetime.datetime.now() + datetime.timedelta(minutes=30)
+    
+    DatabaseManager.execute_query(
+        """INSERT INTO visitor_otps (otp_code, requested_by, allowed_floors, expires_at) 
+           VALUES (%s, %s, %s, %s)""",
+        (otp_code, session['user_id'], floors, expires_at)
+    )
+    
+    DatabaseManager.execute_query(
+        "INSERT INTO auth_logs (username, method, result) VALUES (%s, %s, %s)",
+        (session.get('username'), "otp_generation", f"generated_otp_{otp_code}_floors_{floors}")
+    )
+    
+    return jsonify({"success": True, "otp_code": otp_code, "expires_at": expires_at.isoformat()})
+
 # Admin Management APIs
 
 @app.route('/api/admin/users', methods=['GET'])
