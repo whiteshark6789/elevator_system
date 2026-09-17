@@ -473,7 +473,7 @@ def generate_resident_otp():
         (session.get('username'), "admin_action", f"generated_otp_{otp_code}_floors_{floors}")
     )
     
-    return jsonify({"success": True, "otp_code": otp_code, "expires_at": expires_at.isoformat()})
+    return jsonify({"success": True, "otp_code": otp_code, "expires_at": expires_at.isoformat() + 'Z'})
 
 # Admin Management APIs
 
@@ -736,7 +736,7 @@ def generate_visitor_otp():
         (session.get('username'), "admin_action", f"generate_otp_{otp_code}_floors_{floors}")
     )
     
-    return jsonify({"success": True, "otp_code": otp_code, "expires_at": expires_at.isoformat()})
+    return jsonify({"success": True, "otp_code": otp_code, "expires_at": expires_at.isoformat() + 'Z'})
 
 @app.route('/api/admin/logs/auth', methods=['GET'])
 @admin_required
@@ -762,7 +762,7 @@ def get_auth_logs():
     query += " ORDER BY timestamp DESC LIMIT 200"
     
     rows = DatabaseManager.execute_query(query, params, fetch=True)
-    logs = [{"timestamp": r[0].isoformat(), "username": r[1], "method": r[2], "result": r[3]} for r in rows]
+    logs = [{"timestamp": r[0].isoformat() + 'Z', "username": r[1], "method": r[2], "result": r[3]} for r in rows]
     return jsonify(logs)
 
 @app.route('/api/admin/logs/access', methods=['GET'])
@@ -792,7 +792,7 @@ def get_access_logs():
     query += " ORDER BY timestamp DESC LIMIT 200"
     
     rows = DatabaseManager.execute_query(query, params, fetch=True)
-    logs = [{"timestamp": r[0].isoformat(), "username": r[1], "floor": r[2], "result": r[3]} for r in rows]
+    logs = [{"timestamp": r[0].isoformat() + 'Z', "username": r[1], "floor": r[2], "result": r[3]} for r in rows]
     return jsonify(logs)
 
 if __name__ == '__main__':
