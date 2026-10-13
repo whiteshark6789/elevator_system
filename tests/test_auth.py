@@ -40,7 +40,7 @@ class SecureElevatorAccessTestCase(unittest.TestCase):
         """Tests rate limits lock account after 5 consecutive failures (REQ-55)."""
         # Mock that recent failures count is 5
         mock_execute_one.side_effect = [
-            (1, "testuser", "pwd_hash", "Test User", "resident", True), # First fetch
+            (1, "testuser", "pwd_hash", "Test User", "resident", True, "approved"), # First fetch
             [5] # Count of failures (returned for second query)
         ]
         

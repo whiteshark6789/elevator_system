@@ -234,8 +234,8 @@ def auth_signup():
     with DatabaseManager.get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (username, password_hash, name, role, approval_status) VALUES (%s, %s, %s, %s, %s) RETURNING id",
-                (username, hashed, name, 'resident', 'pending')
+                "INSERT INTO users (username, password_hash, name, role, approval_status, is_active) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+                (username, hashed, name, 'resident', 'pending', False)
             )
         conn.commit()
         
@@ -484,7 +484,8 @@ def get_users():
         """SELECT u.id, u.username, u.name, u.role, u.is_active, 
            (SELECT card_uid FROM rfid_cards r WHERE r.user_id = u.id) as rfid,
            (SELECT COUNT(*) FROM face_encodings fe WHERE fe.user_id = u.id) as has_face,
-           ARRAY(SELECT floor FROM floor_permissions fp WHERE fp.user_id = u.id ORDER BY floor) as floors
+           ARRAY(SELECT floor FROM floor_permissions fp WHERE fp.user_id = u.id ORDER BY floor) as floors,
+           u.approval_status
            FROM users u ORDER BY u.id ASC""", fetch=True
     )
     users_list = []
@@ -497,7 +498,8 @@ def get_users():
             "is_active": r[4],
             "rfid_card": r[5],
             "has_face": r[6] > 0,
-            "allowed_floors": r[7]
+            "allowed_floors": r[7],
+            "approval_status": r[8] or "approved"
         })
     return jsonify(users_list)
 
@@ -576,6 +578,11 @@ def update_permissions():
                     "INSERT INTO floor_permissions (user_id, floor) VALUES (%s, %s)",
                     (user_id, int(f))
                 )
+            # When admin assigns floor permissions, automatically approve & activate if user was pending
+            cur.execute(
+                "UPDATE users SET approval_status = 'approved', is_active = TRUE WHERE id = %s AND (approval_status = 'pending' OR is_active = FALSE)",
+                (user_id,)
+            )
         conn.commit()
         
     # Retrieve username for log
@@ -597,20 +604,35 @@ def toggle_active():
     if user_id is None:
         return jsonify({"error": "User ID required"}), 400
         
-    user = DatabaseManager.execute_one("SELECT is_active, username FROM users WHERE id = %s", (user_id,))
+    user = DatabaseManager.execute_one("SELECT is_active, username, approval_status FROM users WHERE id = %s", (user_id,))
     if not user:
         return jsonify({"error": "User not found"}), 404
         
-    new_state = not user[0]
-    DatabaseManager.execute_query("UPDATE users SET is_active = %s WHERE id = %s", (new_state, user_id))
+    is_active, username, approval_status = user[0], user[1], user[2] if len(user) > 2 else "approved"
+    
+    # If the user is pending or inactive, clicking Activate will both activate and approve the account!
+    if approval_status == 'pending' or not is_active:
+        new_state = True
+        DatabaseManager.execute_query(
+            "UPDATE users SET is_active = TRUE, approval_status = 'approved' WHERE id = %s", 
+            (user_id,)
+        )
+        action_log = f"activated_and_approved_{username}"
+    else:
+        new_state = False
+        DatabaseManager.execute_query(
+            "UPDATE users SET is_active = FALSE WHERE id = %s", 
+            (user_id,)
+        )
+        action_log = f"deactivated_{username}"
     
     # Log admin action
     DatabaseManager.execute_query(
         "INSERT INTO auth_logs (username, method, result) VALUES (%s, %s, %s)",
-        (session.get('username'), "admin_action", f"toggle_active_{user[1]}_to_{new_state}")
+        (session.get('username'), "admin_action", action_log)
     )
     
-    return jsonify({"success": True, "is_active": new_state})
+    return jsonify({"success": True, "is_active": new_state, "approval_status": "approved" if new_state else approval_status})
 
 @app.route('/api/admin/users/delete', methods=['POST'])
 @admin_required

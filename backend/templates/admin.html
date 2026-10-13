@@ -307,6 +307,7 @@
       tbody.innerHTML = '';
       
       users.forEach(user => {
+        const isPending = (user.approval_status === 'pending');
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td><strong>${user.name}</strong></td>
@@ -316,9 +317,12 @@
           <td>
             ${user.has_face ? '<span class="material-symbols-outlined" style="color:#0f5132">check_circle</span> Registered' : '<span style="color:var(--md-sys-color-outline)">Not Registered</span>'}
           </td>
-          <td>${user.allowed_floors.join(', ')}</td>
+          <td>${user.allowed_floors && user.allowed_floors.length > 0 ? user.allowed_floors.join(', ') : '<span style="color:var(--md-sys-color-outline); font-style: italic;">No floors</span>'}</td>
           <td>
-            <span class="m3-badge ${user.is_active ? 'badge-active' : 'badge-inactive'}">${user.is_active ? 'Active' : 'Inactive'}</span>
+            ${isPending ? 
+              '<span class="m3-badge" style="background-color: #ffd8a8; color: #7a3e00; font-weight: 600;">Pending</span>' : 
+              `<span class="m3-badge ${user.is_active ? 'badge-active' : 'badge-inactive'}">${user.is_active ? 'Active' : 'Inactive'}</span>`
+            }
           </td>
           <td>
             <div style="display:flex; gap:8px;">
@@ -328,11 +332,11 @@
               <button class="md-button md-button-tonal" style="height:32px; padding:0 8px;" onclick="openFaceRegDialog(${user.id})" title="Register Face">
                 <span class="material-symbols-outlined" style="font-size:18px;">face</span>
               </button>
-              <button class="md-button md-button-tonal" style="height:32px; padding:0 8px;" onclick="openEditPermsDialog(${user.id}, [${user.allowed_floors}])" title="Edit Floor Access">
+              <button class="md-button md-button-tonal" style="height:32px; padding:0 8px; ${isPending ? 'border: 1px solid var(--md-sys-color-primary);' : ''}" onclick="openEditPermsDialog(${user.id}, [${user.allowed_floors}])" title="${isPending ? 'Assign Floors & Approve Account' : 'Edit Floor Access'}">
                 <span class="material-symbols-outlined" style="font-size:18px;">elevator</span>
               </button>
-              <button class="md-button md-button-tonal" style="height:32px; padding:0 8px; color:${user.is_active ? 'var(--md-sys-color-outline)' : 'var(--md-sys-color-primary)'};" onclick="toggleUserActive(${user.id})" title="${user.is_active ? 'Deactivate User' : 'Activate User'}">
-                <span class="material-symbols-outlined" style="font-size:18px;">power_settings_new</span>
+              <button class="md-button md-button-tonal" style="height:32px; padding:0 8px; color:${(!user.is_active || isPending) ? 'var(--md-sys-color-primary)' : 'var(--md-sys-color-outline)'};" onclick="toggleUserActive(${user.id})" title="${isPending ? 'Approve & Activate User' : (user.is_active ? 'Deactivate User' : 'Activate User')}">
+                <span class="material-symbols-outlined" style="font-size:18px;">${isPending ? 'how_to_reg' : 'power_settings_new'}</span>
               </button>
               ${user.username !== 'admin' ? `
                 <button class="md-button md-button-tonal" style="height:32px; padding:0 8px; color:var(--md-sys-color-error);" onclick="deleteUser(${user.id})" title="Delete User">
